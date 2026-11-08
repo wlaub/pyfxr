@@ -429,16 +429,16 @@ class SFX(CachedSound):
         # the docs.
         return self._get().get_queue_source()
 
-    def _build(self) -> SoundBuffer:
+    def _build(self, stereo: bool) -> SoundBuffer:
         """Actually generate the sound using the current parameters."""
         return sfx(**{
-            f'p_{k}' if k != 'wave_type' else k: v
+            f'p_{k}' if k not in 'wave_type' else k: v
             for k, v in self._params.items()
-        })
+        }, stereo=stereo)
 
-    def build(self) -> SoundBuffer:
+    def build(self, stereo: bool = False) -> SoundBuffer:
         """Get the generated sound (memoised)."""
-        return self._get()
+        return self._get(stereo)
 
     def envelope(
         self,

@@ -139,13 +139,14 @@ cdef class Wavetable:
 cdef class SoundBuffer:
     cdef size_t n_samples
     cdef int16_t *samples
+    cdef int16_t channels
 
     sample_rate: int = SAMPLE_RATE
-    channels: int = 1
 
-    def __cinit__(self, size_t n_samples):
-        self.samples = <int16_t*> PyMem_Malloc(n_samples * sizeof(int16_t))
+    def __cinit__(self, size_t n_samples, int16_t channels):
+        self.samples = <int16_t*> PyMem_Malloc(n_samples * channels * sizeof(int16_t))
         self.n_samples = n_samples
+        self.channels = channels
         if not self.samples:
             raise MemoryError()
         for i in range(n_samples):
@@ -178,7 +179,7 @@ cdef class SoundBuffer:
 
         with wave.open(filename, 'wb') as wav:
             wav.setframerate(SAMPLE_RATE)
-            wav.setnchannels(1)
+            wav.setnchannels(self.channels)
             wav.setnframes(self.n_samples)
             wav.setsampwidth(2)
             wav.writeframesraw(self)
@@ -190,7 +191,7 @@ cdef class SoundBuffer:
         buffer.format = 'h'                     # double
         buffer.internal = NULL                  # see References
         buffer.itemsize = itemsize
-        buffer.len = sizeof(int16_t) * self.n_samples
+        buffer.len = sizeof(int16_t) * self.n_samples * self.channels
         buffer.ndim = 1
         buffer.obj = self
         buffer.readonly = 0
@@ -218,9 +219,9 @@ cdef class CachedSound:
     def _set(self, SoundBuffer sound):
         self.buf = sound
 
-    def _get(self):
+    def _get(self, stereo = False):
         if self.buf is None:
-            self.buf = <SoundBuffer?> self._build()
+            self.buf = <SoundBuffer?> self._build(stereo)
         return self.buf
 
     def _build(self) -> SoundBuffer:
@@ -416,6 +417,7 @@ def sfx(
     float p_arp_mod=0.0,
     float p_sound_vol=0.5,
     float p_max_vol=1,
+    bool stereo=False,
 ):
     cdef int phase=0, period, env_stage, env_time, iphase, ipp
     cdef double fperiod, fmaxperiod, fslide, fdslide, arp_mod
@@ -475,7 +477,11 @@ def sfx(
     env_length[2] = <int> (p_env_decay * p_env_decay * 100000.0);
 
     cdef size_t n_samples = env_length[0] + env_length[1] + env_length[2];
-    cdef SoundBuffer s = SoundBuffer(n_samples)
+    cdef size_t n_channels = 2 if stereo else 1
+    cdef size_t total_samples = n_samples*n_channels
+    cdef SoundBuffer s = SoundBuffer(n_samples, channels=n_channels)
+
+    cdef size_t i
 
     with nogil:
         fphase = p_pha_offset ** 2.0 * 1020.0;
@@ -623,7 +629,12 @@ def sfx(
             ssample /= 8
             ssample *= 2 * p_sound_vol * p_max_vol
             clamp(&ssample, -1.0, 1.0)
-            s.samples[i] = samp(ssample)
+            s.samples[i*n_channels] = samp(ssample)
+
+        if n_channels == 2:
+            for i in range(n_samples):
+                s.samples[2*i+1] = s.samples[2*i]
+
     return s
 
 
