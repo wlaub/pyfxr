@@ -6,6 +6,7 @@ from libc.stdlib cimport rand, abs
 from libc.string cimport memcpy, memset
 
 cimport cython
+from cython.parallel import prange
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cpython.buffer cimport PyObject_GetBuffer
 
@@ -632,7 +633,7 @@ def sfx(
             s.samples[i*n_channels] = samp(ssample)
 
         if n_channels == 2:
-            for i in range(n_samples):
+            for i in prange(n_samples):
                 s.samples[2*i+1] = s.samples[2*i]
 
     return s
