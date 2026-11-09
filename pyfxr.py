@@ -749,7 +749,7 @@ def _mksfxr(params: Dict[str, float]) -> SFXR:
     return SFXR(**params)
 
 
-def _parse_sfxr_binary(_buffer: Buffer) -> Dict[str, float]:
+def _parse_sfxr_binary(_buffer) -> Dict[str, float]:
     """Parse sfxr binary into a dictionary of params
     Parameters not supported by SFXR class are prefixed with _
 
