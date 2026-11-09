@@ -717,7 +717,7 @@ class SFXR(SFX):
 
     __slots__ = '_params'
 
-    def mutate(self, seed: Seed = None) -> SFXR:
+    def mutate(self, seed: Seed = None):
         """Mutate the sound parameters
 
         :param seed: Optional seed to reproduce the sound.
